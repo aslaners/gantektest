@@ -1,0 +1,22 @@
+---
+- hosts: all
+  become: yes
+  tasks: 
+
+    - name: To add the group
+      group: name=testgrp state=present
+     
+    - name: To add the user
+      user: name=testuser state=present group=testgrp comment="Test User"
+   
+    - name: To install the package tree
+      yum: name=tree state=installed
+      
+    - name: To manage ntpd service 
+      service: name=ntpd state=stopped
+      
+    - name: Create a file
+      file: path=/tmp/ansible.txt state=touch
+      
+      
+      ansible -i hosts prod -m setup
