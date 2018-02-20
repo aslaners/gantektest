@@ -1,5 +1,5 @@
     ---
-    - hosts: all
+    - hosts: 10.0.4.28
       tasks:
      - name: Install a httpd pkg
        yum: name=httpd state=latest
