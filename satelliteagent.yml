@@ -15,8 +15,8 @@
       args:
       warn: no
       
-    - name: subscription-manager register --org="Gansat" --activationkey="<Activation Key Name>"
-      command: subscription-manager register --org="Gansat" --activationkey="<Activation Key Name>"
+    - name: subscription-manager register --org="Gansat" --activationkey="satelliteagent"
+      command: subscription-manager register --org="Gansat" --activationkey="satelliteagent"
       args:
       warn: no
       
