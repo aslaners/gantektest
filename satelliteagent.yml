@@ -1,0 +1,47 @@
+---
+- hosts: all
+  tasks:
+    - name: yum remove -y katello-ca* katello-agent
+      command: yum remove -y katello-ca* katello-agent
+      args:
+      warn: no
+    - name: subscription-manager clean
+      command: subscription-manager clean
+      args:
+      warn: no
+   
+    - name: rpm -Uvh http://support.local/pub/katello-ca-consumer-latest.noarch.rpm
+      command:  rpm -Uvh http://support.local/pub/katello-ca-consumer-latest.noarch.rpm
+      args:
+      warn: no
+      
+    - name: subscription-manager register --org="Gansat" --activationkey="<Activation Key Name>"
+      command: subscription-manager register --org="Gansat" --activationkey="<Activation Key Name>"
+      args:
+      warn: no
+      
+    - name: subscription-manager refresh
+      command: subscription-manager refresh
+      args:
+      warn: no
+  
+    - name: yum clean all
+      command: yum clean all
+      args:
+      warn: no
+      
+    - name: yum install -y katello-agent
+      command: yum install -y katello-agent
+      args:
+      warn: no
+      
+    - name: yum update katello-agent 
+      command: yum update katello-agent 
+      args:
+      warn: no
+      
+    - name: sytemctl restart goferd 
+      command: sytemctl restart goferd 
+      args:
+      warn: no
+     
