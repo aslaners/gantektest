@@ -1,5 +1,5 @@
 ---
-- hosts: 10.0.4.31
+- hosts: 10.0.4.33
   tasks:
     - name: yum remove -y katello-ca* katello-agent
       command: yum remove -y katello-ca* katello-agent
