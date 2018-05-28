@@ -1,0 +1,35 @@
+---
+- hosts: all
+- vsphere_guest:
+     vcenter_hostname: 10.1.1.250
+     username: administrator@vsphere.local
+     password: P@ssw0rd
+     guest: newvm001
+     state: powered_on
+     vm_extra_config:
+       vcpu.hotadd: yes
+       mem.hotadd:  yes
+       notes: This is a test VM
+       folder: MyFolder
+     vm_disk:
+        disk1:
+         size_gb: 20
+         type: thin
+         datastore: esx1_datastore
+         folder: /
+     vm_nic:
+       nic1:
+         type: vmxnet3
+         network: VM Network
+         network_type: standard
+     vm_hardware:
+       memory_mb: 2048
+       num_cpus: 2
+       osid: rhel64Guest
+       scsi: LSI Logic SAS
+       vm_cdrom:
+        type: "iso"
+        iso_path: "boromir_isos/isos/Rhel Server/rhel-server-7.3-x86_64-dvd.iso"
+     esxi:
+      datacenter: Gantek
+      hostname: 10.1.1.51
