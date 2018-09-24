@@ -1,17 +1,22 @@
 ---
- - hosts: all
-   tasks:
-     - name: Creates directory
-       file: path=/sosreport
-     - name: Sosreportların düzenli alınması
-       cron:
-         name: "sosreport incelenmesi"
-         hour: "21"
-         minute: "30" 
-         weekday: "0"
-         job: echo "\n" | sosreport
-     - name: Ansible delete files older than 3 weeks example
-       find:
-         paths: /sosreport
-         age: 3w
-       register: files_to_delete
+- hosts: all
+  tasks:
+    - name: Sosreport dizinini yarat
+      file: path=/sosreport state=directory
+    - name: Sosreport dizinine git
+      command: cd /sosreport
+    - name: Run sosreport
+      shell: sosreport -a --name=ansible_test --case-id=1234 --batch | awk '/sosreport-/ {print $1}'
+    - name: Move sosreport
+      shell: /bin/mv /var/tmp/sosreport-*  /sosreport/
+    - name: Ansible delete files older than 3 weeks example
+      find:
+        paths: /sosreport
+        age: 3w
+      register: files_to_delete
+    - name: Ansible remove files older than a date example
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ files_to_delete.files }}"
+
