@@ -1,0 +1,33 @@
+---
+- hosts: localhost
+  vars_files:
+   - vars.yml
+  tasks:  
+    - name: Obtain SSO token with using username/password credentials
+      ovirt_auth:
+        url: "{{ url }}"   
+        username: "{{ username }}"
+        password: "{{ password }}"
+        insecure: true
+    - name: Create VM with cloud init
+      ovirt_vms:
+        auth: "{{ ovirt_auth }}"
+        name: "{{ name }}"
+        template: "{{ template }}"
+        cluster: "{{cluster }}"
+        memory: "{{ memory}}"
+        high_availability: false
+        stateless:  false      
+        wait: true
+        cloud_init:
+          nic_boot_protocol: static
+          nic_ip_address: 
+          nic_netmask: 255.255.255.0
+          nic_gateway: 
+          nic_name: eth0
+          dns_servers: 
+          dns_search: 
+          nic_on_boot: true
+          host_name: 
+    - pause: 
+        minutes: 5
