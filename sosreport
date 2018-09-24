@@ -1,0 +1,17 @@
+---
+ - hosts: all
+   tasks:
+     - name: Creates directory
+       file: path=/sosreport
+     - name: Sosreportların düzenli alınması
+       cron:
+         name: "sosreport incelenmesi"
+         hour: "21"
+         minute: "30" 
+         weekday: "0"
+         job: echo "\n" | sosreport
+     - name: Ansible delete files older than 3 weeks example
+       find:
+         paths: /sosreport
+         age: 3w
+       register: files_to_delete
