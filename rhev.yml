@@ -5,13 +5,13 @@
       ovirt_auth:
         url: https://rhevm.support.local/ovirt-engine/   
         username: admin
-        password: 
+        password: Support123
         insecure: true
     - name: Create VM with cloud init
       ovirt_vms:
         auth: "{{ ovirt_auth }}"
         name: ansibel
-        template: 6.6
+        template: Ansible_Prov
         cluster: Host
         memory: 2
         high_availability: false
