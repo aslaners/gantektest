@@ -5,7 +5,7 @@
       ovirt_auth:
         url: https://rhevm.support.local/ovirt-engine/   
         username: admin
-        password: Support123
+        password: 
         insecure: true
     - name: Create VM with cloud init
       ovirt_vms:
