@@ -3,9 +3,9 @@
   tasks:  
     - name: Obtain SSO token with using username/password credentials
       ovirt_auth:
-        url: https://rhevm.support.local/ovirt-engine/api 
+        url: ***************
         username: admin@internal
-        password: Support123
+        password: *******
         insecure: true
     - name: Create VM with cloud init
       ovirt_vms:
