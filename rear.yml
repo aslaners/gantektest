@@ -19,6 +19,4 @@
         msg: msg="{{shell_output.stdout}}"
     - lineinfile:
            path: /etc/rear/local.conf
-           line: ONLY_INCLUDE_VG=({{shell_output.stdout}})
-
-~                                                               
+           line: ONLY_INCLUDE_VG=({{shell_output.stdout}})                                                           
