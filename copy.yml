@@ -1,0 +1,8 @@
+    ---
+    - hosts: all
+      tasks:
+        - name: copy
+          copy:
+            src: /var/tmp/songul.txt
+            dest: /var/tmp
+
