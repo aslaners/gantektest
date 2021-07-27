@@ -1,0 +1,142 @@
+   - name: gather fact now
+     setup:
+     delegate_to: "{{ old_clients }}"
+
+   - name: Create first partition
+     parted:
+       state: present
+       device: "{{ item }}"
+       number: 1
+     loop:
+       - /dev/sdb
+       - /dev/sdc
+       - /dev/sdd
+       - /dev/sde
+       - /dev/sdf
+     ignore_errors: yes
+   - name: debug ansible mounts
+     debug:
+       msg: "{{ ansible_lvm }}"
+   - name: list volume groups
+     debug: msg="echo volume groups is  {{ item.key }} has {{ item.value.free_g }}"
+     with_dict: "{{ ansible_lvm.vgs }}"
+     delegate_to: "{{ old_clients }}"
+     when:
+       - "{{ not item.key == 'rootvg' }}"
+   - name: Create a volume group on top of /dev/sda1
+     lvg:
+       vg: "{{  item.key }}"
+       pvs: /dev/sdb1,/dev/sdc1
+       state: present
+     with_dict: "{{ ansible_lvm.vgs }}"
+     ignore_errors: yes
+     when:
+       - "{{ not item.key == 'rootvg' }}"
+   - name: Create a volume group on top of 2 
+     lvg:
+       vg: "{{  item.key }}"
+       pvs: /dev/sdc1
+       state: present
+     with_dict: "{{ ansible_lvm.vgs }}"
+     ignore_errors: yes
+     when:
+       - "{{ not item.key == 'rootvg' }}"
+       - "{{ not item.key == 'datavg' }}"
+   - name: Create a volume group on top of 3
+     lvg:
+       vg: "{{  item.key }}"
+       pvs: /dev/sdd1
+       state: present
+     with_dict: "{{ ansible_lvm.vgs }}"
+     ignore_errors: yes
+     when:
+       - "{{ not item.key == 'rootvg' }}"
+       - "{{ not item.key == 'datavg' }}"
+       - "{{ not item.key == 'wasvg' }}"
+####################################################################################
+   - name: list volume groups
+     debug: msg="echo volume groups is  {{ item.key }} has {{ item.value.free_g }}" 
+     with_dict: "{{ ansible_lvm.vgs }}"
+     when: 
+       - "{{ not item.key == 'rootvg' }}"
+   - name: list volume
+     set_fact:
+      lvm_name: "{{ item }}"
+     with_dict: "{{ ansible_lvm.lvs }}"
+     when: 
+       - "{{ not item.key == 'rootvg' }}"
+   - name: debug list volume
+     debug:
+      var: "{{ item }}"
+     with_dict: "{{ ansible_lvm.lvs }}"
+     when: 
+       - "{{ not item.key == 'rootvg' }}"
+   - name: Create a logical volume
+     lvol:
+       vg: "{{ item.value.vg }}"
+       lv:  "{{ item.key }}"
+       size:  "{{ item.value.size_g }}g"
+     with_dict: "{{ ansible_lvm.lvs }}"
+     when:
+       - not item.value.vg == 'rootvg' 
+     ignore_errors: yes
+################################################################################################
+   - name: Set fact mounted devices
+     set_fact:
+       mounted_devices: "{{ ansible_mounts|json_query('[].mount') }}"
+   - name:  list of mounted options
+     set_fact:
+       mounted_devices: "{{ ansible_mounts|json_query('[].options') }}"
+   - name: debug ansible mounts
+     debug:
+       msg: "{{ ansible_mounts|json_query('[].mount') }}"
+   - name: Create list of mounted devices
+     set_fact:
+       mounted_devices: "{{ ansible_mounts|json_query('[].mount') }}"
+   - name: debug ansible mounts
+     debug:
+       msg: "{{ ansible_mounts|json_query('[].mount') }}"
+
+   - name: Create a directory if it does not exist
+     file:
+       path: "{{ ansible_mounts|json_query('[].mount') }}"
+       state: directory
+       mode: 755 
+     with_items: "{{ ansible_mounts }}"
+     when:
+       - "{{ not ansible_mounts|json_query('[].mount') != '/WW' }}"
+
+   - name: list volume
+     set_fact:
+      lvm_name: "{{ item }}"
+     with_dict: "{{ ansible_lvm.lvs }}"
+     when: "{{ not item.key == 'vg' }}"
+   - name: debug list volume
+     debug:
+      var: "{{ item }}"
+     with_dict: "{{ ansible_lvm.lvs }}"
+     when: "{{ not item.value.vg == 'rootvg' }}"
+
+
+   - name: Create the file system on newly created Logical volume for  mount_point 
+     filesystem:
+       fstype: xfs
+       dev: "/dev/mapper/{{item.value.vg }}-{{ item.key }}"
+     with_dict: "{{ ansible_lvm.lvs }}"
+     when: 
+       - not item.value.vg == 'rootvg'
+     ignore_errors: yes
+   - name: Mount the created filesystem  This is to create the FSTAB entry and mount the Filesystem.
+     mount:
+       path:  "{{item.mount }}"
+       #src: "/dev/mapper/{{item.value.vg }}-{{ item.key }}"
+       src: "{{ item.device }}"  
+       fstype: xfs   
+       state: mounted
+     with_items: "{{ ansible_mounts }}"
+     when: 
+       #- not item.value.vg == 'rootvg' 
+       - not item.mount == '/boot'
+       - not item.mount == '/' 
+       - not item.mount == '/home' 
+       - not item.mount == '/var' 
