@@ -1,0 +1,211 @@
+---
+- hosts: gbeelt02
+  tasks:
+    - name: Create a directory if it does not exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 750
+      loop:
+        - /data01/mongodb
+        - /data01/mongodb/data
+        - /data01/mongodb/log
+        - /data01/mongodb/backup
+        - /data01/mongodb/keyfile
+        - /data01/mongodb/keytab
+        - /data01/mongodb/scripts
+        - /data01/mongodb/ssl
+        - /etc/sysconfig/mongod
+    - name: Create first partition
+      parted:
+        state: present
+        device: "{{ item }}"
+        number: 1
+      loop:
+        - /dev/sdb
+        - /dev/sdc
+        - /dev/sdd
+      ignore_errors: yes
+
+    - name: Create a volume group on top of /dev/sda1
+      lvg:
+        vg: datavg
+        pvs: /dev/sdb1
+        state: present
+    - name: Create a logical volume
+      lvol:
+        vg: "{{ item.vg }}"
+        lv: "{{ item.lv }}"
+        size: "{{ item.size }}"
+      with_items:
+        - { vg: 'datavg', lv: 'lv_data01' , size: '100g' }
+      ignore_errors: yes
+
+    - name: xfs format file systems
+      filesystem:
+        fstype: "{{ item.fstype }}"
+        dev: "{{ item.dev }}"
+      with_items:
+        - { fstype: 'xfs', dev: '/dev/datavg/lv_data01' }
+    - name: Create file system directory
+      file:
+        path: "{{ item.path }}"
+        recurse: yes
+      with_items:
+        - { path: '/data01' }
+    - name: Set Mount Points
+      mount:
+        path: "{{ item.path }}"
+        src: "{{ item.src }}"
+        fstype: xfs
+        state: mounted
+      with_items:
+        - { path: '/data01', src: '/dev/datavg/lv_data01' }
+
+#    - name: Mongo directory Permission
+#      command: chown uxdataxl:l /data01
+
+#    - name: Mongo directory Permission
+#      command: chown -R mongod:/data01/mongod
+
+    - name: Configure Rhel 7 System Services
+      service:
+        name="{{ item.sname }}"
+        state="{{ item.state }}"
+        enabled="{{ item.mode }}"
+      with_items:
+        - { sname: 'firewalld', state: 'stopped', mode: 'no'}
+
+    - name: disable IPv6 for performance
+      lineinfile: 
+       dest: /etc/sysctl.conf
+       line: "{{ item }}"
+      with_items:
+        - kernel.pid_max=64000
+        - fs.file-max=98000
+        - kernel.threads-max=64000
+        - vm.max_map_count=128000
+        - net.ipv4.tcp_keepalive_time=300
+        - vm.zone_reclaim_mode=0
+        - vm.swappiness=1
+ #   - name: Mongod Keytab 
+ #     lineinfile: 
+ #      dest: /etc/sysconfig/mongod
+ #      line: "{{ item }}"
+ #     with_items:
+ #       - KRB5_KTNAME="/data01/mongodb/keytab/mongodb.keytab"
+
+#    - name: swapoff
+#      command: swapoff /dev/mapper/rootvg-lv_swap
+#
+#    - name: swapoff
+#      replace:
+#        path: /etc/fstab
+#        regexp: '/dev/mapper/rootvg-lv_swap swap                    swap    defaults        0 0'
+#        replace: '#/dev/mapper/rootvg-lv_swap swap                    swap    defaults        0 0'
+
+#    - name: swapoff
+#      replace:
+#        path: /etc/default/grub
+#        regexp: 'rd.lvm.lv=rootvg/lv_swap '
+#        replace: ' '
+
+#    - name: grub2 config
+#      command:  grub2-mkconfig -o /boot/grub2/grub.cfg
+
+    - name: Copy file with owner and permissions
+      copy:
+       src: /home/songulas/gar_unix_ansible/disable-transparent-huge-pages.service
+       dest: /etc/systemd/system/disable-transparent-huge-pages.service
+    - name: Copy file with owner and permissions
+      copy:
+       src: /home/songulas/gar_unix_ansible/rs_keyfile
+       dest: /data01/mongodb/keyfile/rs_keyfile
+
+
+    - name: Configure Rhel 7 System Services
+      service:
+        name="{{ item.sname }}"
+        state="{{ item.state }}"
+        enabled="{{ item.mode }}"
+      with_items:
+        - { sname: 'disable-transparent-huge-pages.service', state: 'started', mode: 'yes'}
+
+    - name: ensure a list of packages installed
+      yum:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - ntp
+
+    - name: Ntp conf
+      lineinfile:
+        dest: /etc/ntp.conf
+        line: server
+
+    - name: Configure Rhel 7 System Services
+      service:
+        name="{{ item.sname }}"
+        state="{{ item.state }}"
+        enabled="{{ item.mode }}"
+      with_items:
+        - { sname: 'chronyd', state: 'stopped', mode: 'no'}
+        - { sname: 'ntpd', state: 'started', mode: 'yes'}
+
+
+    - name: Add repository
+      yum_repository:
+        name: mongodb-enterprise.repo 
+        description: MongoDB Enterprise Repository
+        baseurl: https://repo.mongodb.com/yum/redhat/$releasever/mongodb-enterprise/4.2/$basearch/
+        #gpgcheck=
+        #enabled=1
+    - name: Elasticsearch yum.conf
+      lineinfile:
+       dest: /etc/yum.conf
+       line: "{{ item }}"
+      with_items:
+        - proxy=http://
+#    - name: Proxy
+#      shell: export https_proxy=
+
+#    - name: Proxy
+#      shell: export http_proxy=http://
+
+    - name: ensure a list of packages installed
+      yum:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - mlocate
+        - telnet
+        - krb5-workstation*
+        - krb5-lib*
+        - openldap-client*
+        - mongodb-enterprise*
+        - glibc
+      environment:
+        http_proxy: http
+    - name: Mongo rsh key permissin
+      command: chown mongod:mongod /data01/mongodb/keyfile/rs_keyfile
+
+    - name: Mongo rsh key permissin
+      command: chmod 400 /data01/mongodb/keyfile/rs_keyfile
+
+    - name: Configure Rhel 7 System Services
+      service:
+        name="{{ item.sname }}"
+        state="{{ item.state }}"
+        enabled="{{ item.mode }}"
+      with_items:
+        - { sname: 'mongod', state: 'started', mode: 'yes'}
+    - name: Mongod config for test
+      copy:
+       src: /home/songulas/gar_unix_ansible/Bigdata/mongod_test.conf
+       dest: /etc/mongod.conf
+      when: environment_type == 'tst'
+    - name: Mongod config for prod
+      copy:
+       src: /home/songulas/gar_unix_ansible/Bigdata/mongod_prod.conf
+       dest: /etc/mongod.conf
+      when: environment_type == 'prd'
