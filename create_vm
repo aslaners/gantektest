@@ -1,0 +1,84 @@
+#$ cat rhv_vm_create.yml
+---
+- name: Create VM on RHV
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+#  vars_files:
+#    - rhv_vars.yml
+#    - password.yml
+
+  pre_tasks:
+    - name: Login to oVirt
+      ovirt_auth:
+        hostname: "
+        "
+        username: "
+        rnal"
+        password: "
+        "
+#        ca_file: "{{ rhvm_cafile | default(omit) }}"
+#        insecure: "{{ rhvm_insecure | default(true) }}"
+      tags:
+        - always
+
+  vars:
+    datacenter:   
+    cluster:   
+    template: Rhel7-Temp-T
+    vm_memory: 2GiB
+    vm_name: test02
+    hostname: test02
+    ip_addresses: 
+    netwmask: 2
+    gateway: 
+
+  tasks:
+  - name: Create and run VM from template
+    ovirt_vm:
+      auth: "{{ ovirt_auth }}"
+      name: test02
+      template: 
+      cluster:   
+"rhev_prov.yml" 93L, 2446C
+  hosts: localhost
+           - content: |
+               Hello, world!
+             path: /tmp/greeting.txt
+             permissions: '0644'
+        user_name: root
+        root_password: super_password
+        host_name: test02
+      state: running
+      wait: yes
+
+  post_tasks:
+    - name: Change vlan id
+      shell: python3 /home/songulas/gar_unix_ansible/Bigdata/vm_update_nic.py 'test02' 'V3199'"
+#    - name: Logout from oVirt
+#      ovirt_auth:
+#        state: absent
+#        ovirt_auth: "{{ ovirt_auth }}"
+#      tags:
+#       - always
+#    - ovirt_disk_info:
+#        auth: "{{ ovirt_auth }}"
+#        pattern: name=test-vm02
+#      register: result
+#    - name: print titles of updates
+#      debug: msg="{{ result.ovirt_disks | json_query(jmesquery) }}"
+#      vars:
+#        jmesquery: "[0].id"
+#    - ovirt_nic_info:
+#        auth: "{{ ovirt_auth }}"
+#        vm: test-vm02
+#        name: eth*
+#      register: result
+#    - debug:
+#        msg: "{{ result.ovirt_nics }}"
+  #  - name: print titles of updates
+  #    debug: msg="{{ result.ovirt_nics | json_query(jmesquery) }}"
+  #    vars:
+  #      jmesquery: id
+~
