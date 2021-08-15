@@ -1,0 +1,56 @@
+LAB Upgrade;
+https://docs.openshift.com/container-platform/4.3/updating/updating-cluster-between-minor.html
+ 
+NOT: NonProd larda upgrade e başlamadan önce aynı anda 5 node u update etmesini sağlayabiliriz.
+oc edit mcp worker
+spec:
+  maxUnavailable: 5
+ 
+1- MCP leri kontrol ettik, "unexpected on-disk state validating against rendered-worker" hatasında dolayı hata alan node larda;
+	ssh to nodes;
+	rpm-ostree rollback --reboot  
+	touch /run/machine-config-daemon-force
+ 
+ 
+2-  Upgrade to latest version of 4.2
+               oc adm upgrade --to=4.2.36 
+ 
+3-  Upgrade te openshift-cluster-version projesindeki l-pod un restart olup yeni güncellemeleri alması lazım.
+              oc logs -f cluster-version-operator-55f9dffd86-nwnlc 
+ 
+       4- Upgrade ettikten sonra aynı sorun yeniden oldu ve bir daha düzenledik.
+           ssh to nodes;
+          rpm-ostree rollback --reboot  
+          touch /run/machine-config-daemon-force
+ 
+******4.2 latest tan 4.3 e upgrade ******
+      5- Openshift UI => cluster settings => change channel to 4.3 stable.
+          Alternatif olarak oc edit clusterversion  böyle de  yapabilirsin.
+ 
+      6- Co ve node ların hepsinin yeni versiyonda olduğunu kontrol et.
+ 
+      7- Upgrade i çalıştır.
+          oc adm upgrade --to=4.3.27
+ 
+        NOT: 4.2 den 4.3 e çıktıktan sonra sertifa sorunundan dolayı bütün pod ları restart etmemiz gerekiyor.
+        => node by node ;
+ 
+Infra Node lar ve Master lar için;
+IFS=$'\n'
+for i in $(oc get po -o wide -A | grep gbpamcp11 | awk '{print $1 " " $2 }');do oc delete pod -n  $(echo $i | awk -F' ' '{print $1}')  $(echo $i | awk -F' ' '{print $2}') ; done
+ >>>>>>>>
+ for i in $(oc get po -o wide -A | grep gbpamcp13 | awk '{print $1 " " $2 }');do   oc delete po   $(echo $i | awk -F' ' '{print $2}') -n  $(echo $i | awk -F' ' '{print $1}') ; done
+ 
+Worker Node lar için;
+IFS=$'\n'
+for i in $(oc get nodes | grep worker | awk '{print $1 }'); do oc adm drain $i --force --delete-local-data --ignore-daemonsets &&
+for b in $(oc get po -o wide -A | grep $i | awk '{print $1 " " $2 }');do oc delete pod --force --grace-period=0 -n  $(echo $b | awk -F' ' '{print $1}')  $(echo $b | awk -F' ' '{print $2}') ;   done ; oc adm uncordon $i; done ;
+ 
+ 
+oc adm drain gbpanlt01 --force --delete-local-data --ignore-daemonsets
+for i in $(oc get po -o wide -A | grep gbpanlt01 | awk '{print $1 " " $2 }');do oc delete pod -n  $(echo $i | awk -F' ' '{print $1}')  $(echo $i | awk -F' ' '{print $2}') ; done
+oc adm uncordon gbpanlt01
+ 
+FROM 4.3 TO 4.4 UPGRADE;
+1- Openshift UI => cluster settings => change channel to 4.4 stable.
+2- oc adm upgrade --to=4.4.10
